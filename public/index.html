@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>CS4241 Assignment 2</title>
+    <meta charset="utf-8">
+    <script src="js/main.js"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Epunda+Slab:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+    <!-- get rid of favicon error -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  </head>
+  <body>
+    <h1>To-do List Application</h1>
+    <div class="grid-container"> 
+      <div class="grid-item">
+          <section class="form-section">
+          <h2>Add New To-do</h2>
+          <form id="todo-form">
+            <div class="form-group">
+              <label for="task">Task:</label>
+              <input type="text" id="task" name="task">
+            </div>
+            
+            <div class="form-group">
+              <label for="priority">Priority:</label>
+              <select id="priority" name="priority" required>
+                <option value="">Select priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="creation_date">Creation Date:</label>
+              <input type="date" id="creation_date" name="creation_date" required>
+            </div>
+            
+            <button type="submit">Add To-do</button>
+          </form>
+        </section>
+      </div>
+      <!--Divide the page into two sections: one for the form and one for the results. -->
+      <div class="grid-item">
+          <section class="results-section">
+          <h2>Current To-dos</h2>
+          <div id="results-display" class="todo-table">
+            <table id="todo-table">
+              <thead>
+                <tr>
+                  <th style="background-color: #8e7572;">ID</th>
+                  <th style="background-color: #8e7572;">Task</th>
+                  <th style="background-color: #8e7572;">Priority</th>
+                  <th style="background-color: #8e7572;">Creation Date</th>
+                  <th style="background-color: #8e7572;">Deadline</th>
+                  <th style="background-color: #8e7572;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="todo-list">
+                <!-- Todo items will be populated here from the server (actual code is in main.js) -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
