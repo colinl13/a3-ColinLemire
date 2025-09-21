@@ -9,6 +9,8 @@ const submit = async function( event ) {
   // remains to this day
   event.preventDefault()
   
+  console.log("Form submitted!")
+  
   const taskInput = document.querySelector( "#task" ),
         priorityInput = document.querySelector( "#priority" ),
         dateInput = document.querySelector( "#creation_date" )
@@ -19,11 +21,16 @@ const submit = async function( event ) {
     creation_date: dateInput.value
   }
   
+  console.log("Form data:", json)
+  
   const body = JSON.stringify( json )
 
   try {
-    const response = await fetch( "/submit", {
+    const response = await fetch( "/todos", {
       method:"POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
       body 
     })
 
@@ -34,6 +41,7 @@ const submit = async function( event ) {
       
       // Clear the form
       taskInput.value = ""
+      
       priorityInput.value = ""
       // Assumes that the user will want to use the same date for the next task;
       // After testing, I felt that this made more sense than completely clearing this field

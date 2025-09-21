@@ -1,12 +1,20 @@
-const http = require( "http" ),
-      fs   = require( "fs" ),
+const express = require("express"),
+      fs = require("fs"),
       // IMPORTANT: you must run `npm install` in the directory for this assignment
       // to install the mime library if you"re testing this on your local machine.
       // However, Glitch will install it automatically by looking in your package.json
       // file.
-      mime = require( "mime" ),
-      dir  = "public/",
+      mime = require("mime"),
+      dir = "public/",
       port = 3000
+
+const app = express()
+
+// Middleware to parse JSON bodies
+app.use(express.json())
+
+// Middleware to serve static files from public directory
+app.use(express.static(dir))
 
 let todoData = [
   { 
@@ -34,6 +42,11 @@ let todoData = [
 
 // Function to calculate derived field (deadline) based on creation_date and priority
 function calculateDeadline(creationDate, priority) {
+  // Validate the input date
+  if (!creationDate || creationDate.trim() === '') {
+    throw new Error('Creation date is required')
+  }
+  
   const date = new Date(creationDate)
   // this project taught me that Date is a built in class for JS! First language I have
   // seen that in. 
@@ -56,97 +69,72 @@ function generateId() {
   return Math.max(...todoData.map(item => item.id), 0) + 1 // return the highest ID + 1
 }
 
-const server = http.createServer( function( request,response ) {
-  if( request.method === "GET" ) {
-    handleGet( request, response )    
-  }else if( request.method === "POST" ){
-    handlePost( request, response ) 
-  }else if( request.method === "DELETE" ){
-    handleDelete( request, response )
-  }
+// Route to serve the main HTML page
+app.get("/", (request, response) => {
+  sendFile(response, "public/index.html")
 })
 
-const handleGet = function( request, response ) {
-  const filename = dir + request.url.slice( 1 ) 
+// Route to get all todos
+app.get("/todos", (request, response) => {
+  response.json(todoData)
+})
 
-  if( request.url === "/" ) {
-    sendFile( response, "public/index.html" )
-  } else if( request.url === "/todos" ) { // return todo data set
-    response.writeHead( 200, "OK", {"Content-Type": "application/json" })
-    response.end( JSON.stringify(todoData, null, 2) )
-  } else {
-    sendFile( response, filename )
+// Route to add a new todo
+app.post("/todos", (request, response) => {
+  const formData = request.body
+  console.log("Received data:", formData)
+
+  // Server logic: Add derived field before integrating with existing dataset
+  const newTodo = {
+    id: generateId(),
+    task: formData.task,
+    priority: formData.priority,
+    creation_date: formData.creation_date,
+    deadline: calculateDeadline(formData.creation_date, formData.priority) // DERIVED FIELD
   }
-}
 
-const handlePost = function( request, response ) {
-  let dataString = ""
+  // Add to dataset
+  todoData.push(newTodo)
+  console.log("Added new todo:", newTodo)
+  console.log("All todos:", todoData)
 
-  request.on( "data", function( data ) {
-      dataString += data 
-  })
+  // Return updated dataset to client
+  response.json(todoData)
+  
+})
 
-  request.on( "end", function() {
-    const formData = JSON.parse( dataString )
-    console.log( "Received data:", formData )
-
-    // Server logic: Add derived field before integrating with existing dataset
-    const newTodo = {
-      id: generateId(),
-      task: formData.task,
-      priority: formData.priority,
-      creation_date: formData.creation_date,
-      deadline: calculateDeadline(formData.creation_date, formData.priority) // DERIVED FIELD
-    }
-
-    // Add to dataset
-    todoData.push(newTodo)
-    console.log("Added new todo:", newTodo)
-    console.log("All todos:", todoData)
-
-    // Return updated dataset to client
-    response.writeHead( 200, "OK", {"Content-Type": "application/json" })
-    response.end( JSON.stringify(todoData) )
-  })
-}
-
-const handleDelete = function( request, response ) {
-  const url = new URL(request.url, `http://${request.headers.host}`)
-  const id = parseInt(url.searchParams.get('id'))
+// Route to delete a todo
+app.delete("/todos", (request, respones) => {
+  const id = parseInt(request.query.id)
   
   if (id) {
     todoData = todoData.filter(todo => todo.id !== id)
     console.log(`Deleted todo with id ${id}`)
     console.log("Remaining todos:", todoData)
     
-    response.writeHead( 200, "OK", {"Content-Type": "application/json" })
-    response.end( JSON.stringify(todoData) )
+    response.json(todoData)
   } else {
-    response.writeHead( 400, "Bad Request", {"Content-Type": "text/plain" })
-    response.end("Missing id parameter")
+    response.status(400).send("Missing id parameter")
   }
+})
+
+// Helper function to send files (for non-static files)
+const sendFile = function(response, filename) {
+  const type = mime.getType(filename)
+
+  fs.readFile(filename, function(err, content) {
+    // if the error = null, then we've loaded the file successfully
+    if (err === null) {
+      // status code: https://httpstatuses.com
+      response.setHeader("Content-Type", type)
+      response.send(content)
+    } else {
+      // file not found, error code 404
+      response.status(404).send("404 Error: File Not Found")
+    }
+  })
 }
 
-const sendFile = function( response, filename ) {
-   const type = mime.getType( filename ) 
-
-   fs.readFile( filename, function( err, content ) {
-
-     // if the error = null, then we"ve loaded the file successfully
-     if( err === null ) {
-
-       // status code: https://httpstatuses.com
-       response.writeHeader( 200, { "Content-Type": type })
-       response.end( content )
-
-     }else{
-
-       // file not found, error code 404
-       response.writeHeader( 404 )
-       response.end( "404 Error: File Not Found" )
-
-     }
-   })
-}
-
-server.listen( process.env.PORT || port )
+app.listen(process.env.PORT || port, () => {
+  console.log(`Server running on port ${process.env.PORT || port}`)
+})
