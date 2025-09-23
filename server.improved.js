@@ -1,3 +1,5 @@
+require("dotenv").config()
+
 const express = require("express"),
       fs = require("fs"),
       // IMPORTANT: you must run `npm install` in the directory for this assignment
@@ -6,7 +8,10 @@ const express = require("express"),
       // file.
       mime = require("mime"),
       dir = "public/",
-      port = 3000
+      port = process.env.PORT
+
+const { MongoClient } = require("mongodb")
+const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@a3-colinlemire.4a7wk7k.mongodb.net/?retryWrites=true&w=majority&appName=a3-colinlemire`
 
 const app = express()
 
@@ -16,37 +21,8 @@ app.use(express.json())
 // Middleware to serve static files from public directory
 app.use(express.static(dir))
 
-let todoData = [
-  { 
-    id: 1,
-    task: "Complete assignment 2", 
-    priority: "high", 
-    creation_date: "2025-09-04",
-    deadline: "2025-09-08" // hard coded in, high priority usually has a 3 day deadline
-  },
-  { 
-    id: 2,
-    task: "Study for exam", 
-    priority: "medium", 
-    creation_date: "2025-09-04",
-    deadline: "2025-09-11"
-  },
-  { 
-    id: 3,
-    task: "Buy groceries", 
-    priority: "low", 
-    creation_date: "2025-09-04",
-    deadline: "2025-09-18"
-  }
-]
-
 // Function to calculate derived field (deadline) based on creation_date and priority
 function calculateDeadline(creationDate, priority) {
-  // Validate the input date
-  if (!creationDate || creationDate.trim() === '') {
-    throw new Error('Creation date is required')
-  }
-  
   const date = new Date(creationDate)
   // this project taught me that Date is a built in class for JS! First language I have
   // seen that in. 
@@ -64,57 +40,76 @@ function calculateDeadline(creationDate, priority) {
   return date.toISOString().split('T')[0] // return YYYY-MM-DD format
 }
 
-// Function to generate new ID for each new todo
-function generateId() {
-  return Math.max(...todoData.map(item => item.id), 0) + 1 // return the highest ID + 1
-}
-
 // Route to serve the main HTML page
 app.get("/", (request, response) => {
   sendFile(response, "public/index.html")
 })
 
+let todosCollection
+
 // Route to get all todos
-app.get("/todos", (request, response) => {
-  response.json(todoData)
+app.get("/todos", async (request, response) => {
+  try {
+    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    response.json(all)
+  } catch (error) {
+    console.error(error)
+    response.status(500).send("Failed to fetch to-dos")
+  }
 })
 
 // Route to add a new todo
-app.post("/todos", (request, response) => {
+async function handleCreateTodo(request, response) {
   const formData = request.body
-  console.log("Received data:", formData)
 
-  // Server logic: Add derived field before integrating with existing dataset
-  const newTodo = {
-    id: generateId(),
-    task: formData.task,
-    priority: formData.priority,
-    creation_date: formData.creation_date,
-    deadline: calculateDeadline(formData.creation_date, formData.priority) // DERIVED FIELD
+  const { task, priority, creation_date } = formData || {}
+  if (!task || !priority || !creation_date) {
+    response.status(400).send("Missing required fields: task, priority, creation_date")
+    return
   }
 
-  // Add to dataset
-  todoData.push(newTodo)
-  console.log("Added new todo:", newTodo)
-  console.log("All todos:", todoData)
+  try {
+    // Compute next numeric id
+    const last = await todosCollection.find({}).sort({ id: -1 }).limit(1).toArray()
+    const nextId = (last[0]?.id || 0) + 1
 
-  // Return updated dataset to client
-  response.json(todoData)
-  
-})
+    const newTodo = {
+      id: nextId,
+      task,
+      priority,
+      creation_date,
+      deadline: calculateDeadline(creation_date, priority)
+    }
+
+    await todosCollection.insertOne(newTodo)
+
+    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    response.json(all)
+  } catch (error) {
+    console.error(error)
+    response.status(500).send("Failed to add todo")
+  }
+}
+
+app.post("/todos", handleCreateTodo)
+app.post("/submit", handleCreateTodo)
 
 // Route to delete a todo
-app.delete("/todos", (request, respones) => {
+app.delete("/todos", async (request, response) => {
   const id = parseInt(request.query.id)
   
-  if (id) {
-    todoData = todoData.filter(todo => todo.id !== id)
-    console.log(`Deleted todo with id ${id}`)
-    console.log("Remaining todos:", todoData)
-    
-    response.json(todoData)
-  } else {
+  if (!id) {
     response.status(400).send("Missing id parameter")
+    return
+  }
+
+  try {
+    await todosCollection.deleteOne({ id })
+    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    response.json(all)
+  } catch (error) {
+    console.error(error)
+    response.status(500).send("Failed to delete todo")
   }
 })
 
@@ -122,9 +117,9 @@ app.delete("/todos", (request, respones) => {
 const sendFile = function(response, filename) {
   const type = mime.getType(filename)
 
-  fs.readFile(filename, function(err, content) {
+  fs.readFile(filename, function(error, content) {
     // if the error = null, then we've loaded the file successfully
-    if (err === null) {
+    if (error === null) {
       // status code: https://httpstatuses.com
       response.setHeader("Content-Type", type)
       response.send(content)
@@ -135,6 +130,25 @@ const sendFile = function(response, filename) {
   })
 }
 
-app.listen(process.env.PORT || port, () => {
-  console.log(`Server running on port ${process.env.PORT || port}`)
-})
+// Start server after connecting to MongoDB
+const mongoUri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@a3-colinlemire.4a7wk7k.mongodb.net/?retryWrites=true&w=majority&appName=a3-colinlemire`
+const mongoDbName = "todolist"
+
+async function start() {
+  try {
+    console.log(`Connecting to MongoDB at ${mongoUri}, db: ${mongoDbName}`)
+    const client = new MongoClient(mongoUri)
+    await client.connect()
+    const db = client.db(mongoDbName)
+    todosCollection = db.collection("todos")
+
+    app.listen(process.env.PORT || port, () => {
+      console.log(`Server running on port ${process.env.PORT || port}`)
+    })
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error)
+    process.exit(1)
+  }
+}
+
+start()
