@@ -14,7 +14,14 @@
   </head>
   <body>
     <div class="container-fluid">
-      <h1 class="text-center my-4">To-do List Application</h1>
+      <div class="d-flex justify-content-end mt-3 mb-2 gap-2">
+        <button id="login-button" class="btn btn-success" style="display:none">Log in</button>
+        <button id="logout-button" class="btn btn-danger" style="display:none">Log out</button>
+      </div>
+      <div class="title-box">
+        <h1 class="text-center my-4">To-do List Application</h1>
+      </div>
+      <h6 id="login-message" class="text-center my-4">Must be logged in to use </h6>
       <div class="row">
         <div class="col-md-6">
           <div class="card form-section">

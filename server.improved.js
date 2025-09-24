@@ -56,12 +56,35 @@ function calculateDeadline(creationDate, priority) {
   return date.toISOString().split('T')[0] // return YYYY-MM-DD format
 }
 
-// Route to serve the main HTML page; if not authenticated, redirect to Auth0 login
+// Route to serve the main HTML page; always render and let client show login/logout
 app.get("/", (request, response) => {
-  if (!request.oidc || !request.oidc.isAuthenticated()) {
-    return response.oidc.login({ returnTo: "/" })
-  }
   sendFile(response, "public/index.html")
+})
+
+// Lightweight auth status endpoint for client-side UI toggling
+app.get("/api/auth-status", (request, response) => {
+  const isAuthenticated = !!(request.oidc && request.oidc.isAuthenticated())
+  if (!isAuthenticated) {
+    return response.json({ authenticated: false })
+  }
+  response.json({
+    authenticated: true,
+    user: {
+      sub: request.oidc.user?.sub,
+      name: request.oidc.user?.name,
+      email: request.oidc.user?.email
+    }
+  })
+})
+
+// Debug endpoint to check Auth0 configuration
+app.get("/api/debug-auth", (request, response) => {
+  response.json({
+    baseURL: process.env.BASE_URL,
+    clientID: process.env.AUTH_CLIENT_ID,
+    issuerBaseURL: process.env.AUTH_ISSUER_BASE_URL,
+    currentURL: request.protocol + '://' + request.get('host')
+  })
 })
 
 let todosCollection

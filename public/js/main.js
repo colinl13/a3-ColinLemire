@@ -65,7 +65,7 @@ const submit = async function( event ) {
       editingId = null
       const submitButton = document.querySelector('#todo-form button[type="submit"]')
       if (submitButton) 
-        submitBtn.textContent = 'Add To-do'
+        submitButton.textContent = 'Add To-do'
       
       console.log( "To-do saved successfully!" )
     } else if (response.status === 401) {
@@ -174,6 +174,42 @@ window.onload = function() {
   
   // Load existing todos when page loads
   loadTodos()
+
+  // Make login and logout buttons
+  const loginButton = document.querySelector('#login-button')
+  const logoutButton = document.querySelector('#logout-button')
+  const loginMessage = document.querySelector('#login-message')
+
+  fetch('/api/auth-status')
+    .then(r => r.json())
+    .then(({ authenticated }) => {
+      if (authenticated) {
+        if (logoutButton) 
+          logoutButton.style.display = 'inline-block'
+        if (loginButton) 
+          loginButton.style.display = 'none'
+        if (loginMessage)
+          loginMessage.style.display = 'none'
+      } else {
+        if (loginButton) 
+          loginButton.style.display = 'inline-block'
+        if (logoutButton) 
+          logoutButton.style.display = 'none'
+        if (loginMessage)
+          loginMessage.style.display = 'center'
+      }
+    })
+
+  if (loginButton) {
+    loginButton.onclick = () => {
+      window.location.href = '/login'
+    }
+  }
+  if (logoutButton) {
+    logoutButton.onclick = () => {
+      window.location.href = '/logout'
+    }
+  }
 }
 
 // expose startEdit for inline onclick

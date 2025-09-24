@@ -16,7 +16,14 @@ body {
   border: 2px solid black;
 }
 
-h1 {
+/* h1 {
+  background-color: whitesmoke;
+  border: 2px solid black;
+  padding: 15px;
+  border-radius: 8px;
+} */
+
+.title-box {
   background-color: whitesmoke;
   border: 2px solid black;
   padding: 15px;
