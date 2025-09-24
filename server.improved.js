@@ -130,10 +130,10 @@ const sendFile = function(response, filename) {
   })
 }
 
-// Start server after connecting to MongoDB
 const mongoUri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@a3-colinlemire.4a7wk7k.mongodb.net/?retryWrites=true&w=majority&appName=a3-colinlemire`
 const mongoDbName = "todolist"
 
+// Start server after connecting to MongoDB
 async function start() {
   try {
     console.log(`Connecting to MongoDB at ${mongoUri}, db: ${mongoDbName}`)
@@ -142,8 +142,8 @@ async function start() {
     const db = client.db(mongoDbName)
     todosCollection = db.collection("todos")
 
-    app.listen(process.env.PORT || port, () => {
-      console.log(`Server running on port ${process.env.PORT || port}`)
+    app.listen(process.env.PORT, () => {
+      console.log(`Server running on port ${process.env.PORT}`)
     })
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error)

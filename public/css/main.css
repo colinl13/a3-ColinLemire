@@ -1,122 +1,54 @@
 body {
-  background-color:#6be3a2;
-}
-
-.form-section{
-  background-color:#e36bbd;
-  /* width:70%; */
-  border: 2px solid black;
-  padding: 20px;
-  align-content: left;
+  background-color: #6be3a2;
   font-family: "Epunda Slab", serif;
   font-optical-sizing: auto;
   font-weight: 500;
   font-style: normal;
 }
 
-.results-section{
+.form-section {
   background-color: #e36bbd;
-  /* width:70%; */
   border: 2px solid black;
-  padding: 20px;
-  align-content: left;
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
 }
 
-h1{
-  text-align: center;
+.results-section {
+  background-color: #e36bbd;
+  border: 2px solid black;
+}
+
+h1 {
   background-color: whitesmoke;
   border: 2px solid black;
-  width:50%;
-  margin:auto;
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
+  padding: 15px;
+  border-radius: 8px;
 }
 
-h2{
-  text-align: left;
-  margin:20px;
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
+/* Priority styling for to-do table cells */
+/* Got this idea from a similar project in CS3733 */
+.priority-high {
+  color: red;
+  font-weight: bold;
 }
 
-table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 70%;
-  padding: 10px;
+.priority-medium {
+  color: orange; 
+  font-weight: bold;
 }
 
-td, th {
-  border: 1px solid black;
-  text-align: left;
-  padding: 8px;
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
+.priority-low {
+  color: lightgreen;
+  font-weight: bold;
 }
 
-/* .listhead {
-  background-color: grey;
-} */
-
-tr:nth-child(even) {
-  background-color: #8e7572;
+.delete-btn {
+  background-color: lightcoral;
+  color: white;  
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-tr:nth-child(odd) {
-  background-color: whitesmoke;
-}
-
-.todo-table {
-  padding: 5px;
-}
-
-.grid-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-gap: 10px;
-      font-family: "Epunda Slab", serif;
-      font-optical-sizing: auto;
-      font-weight: 500;
-      font-style: normal;
-    }
-
-.grid-item {
-      background-color: #6be0e3;
-      padding: 20px;
-      text-align: center;
-      font-family: "Epunda Slab", serif;
-      font-optical-sizing: auto;
-      font-weight: 500;
-      font-style: normal;
-      
-    }
-
-.form-group {
-  text-align:left;
-  background-color:#8e7572;
-  padding:5px;
-  margin:5px;
-  border:black 1px solid;
-  /* align-content:left; */
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
-}
-
-.epunda-slab {
-  font-family: "Epunda Slab", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-style: normal;
+.delete-btn:hover {
+  background-color: red;
 }
