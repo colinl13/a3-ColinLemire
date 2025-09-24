@@ -13,6 +13,8 @@ const express = require("express"),
 const { MongoClient } = require("mongodb")
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@a3-colinlemire.4a7wk7k.mongodb.net/?retryWrites=true&w=majority&appName=a3-colinlemire`
 
+// console.log(`${process.env.AUTH_ISSUER_BASE_URL}`)
+
 const app = express()
 
 // Middleware to parse JSON bodies
@@ -20,6 +22,20 @@ app.use(express.json())
 
 // Middleware to serve static files from public directory
 app.use(express.static(dir))
+
+// Auth0 configuration
+const { auth, requiresAuth } = require("express-openid-connect")
+const authConfig = {
+  authRequired: false,
+  auth0Logout: true,
+  secret: process.env.AUTH_SECRET,
+  baseURL: process.env.BASE_URL,
+  clientID: process.env.AUTH_CLIENT_ID,
+  issuerBaseURL: process.env.AUTH_ISSUER_BASE_URL
+}
+
+// Enable Auth0 routes
+app.use(auth(authConfig))
 
 // Function to calculate derived field (deadline) based on creation_date and priority
 function calculateDeadline(creationDate, priority) {
@@ -40,17 +56,21 @@ function calculateDeadline(creationDate, priority) {
   return date.toISOString().split('T')[0] // return YYYY-MM-DD format
 }
 
-// Route to serve the main HTML page
+// Route to serve the main HTML page; if not authenticated, redirect to Auth0 login
 app.get("/", (request, response) => {
+  if (!request.oidc || !request.oidc.isAuthenticated()) {
+    return response.oidc.login({ returnTo: "/" })
+  }
   sendFile(response, "public/index.html")
 })
 
 let todosCollection
 
 // Route to get all todos
-app.get("/todos", async (request, response) => {
+app.get("/todos", requiresAuth(), async (request, response) => {
   try {
-    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    const userId = request.oidc?.user?.sub
+    const all = await todosCollection.find({ userId }).sort({ id: 1 }).toArray()
     response.json(all)
   } catch (error) {
     console.error(error)
@@ -69,8 +89,13 @@ async function handleCreateTodo(request, response) {
   }
 
   try {
+    const userId = request.oidc?.user?.sub
+    if (!userId) {
+      response.status(401).send("Unauthorized")
+      return
+    }
     // Compute next numeric id
-    const last = await todosCollection.find({}).sort({ id: -1 }).limit(1).toArray()
+    const last = await todosCollection.find({ userId }).sort({ id: -1 }).limit(1).toArray()
     const nextId = (last[0]?.id || 0) + 1
 
     const newTodo = {
@@ -78,12 +103,13 @@ async function handleCreateTodo(request, response) {
       task,
       priority,
       creation_date,
-      deadline: calculateDeadline(creation_date, priority)
+      deadline: calculateDeadline(creation_date, priority),
+      userId
     }
 
     await todosCollection.insertOne(newTodo)
 
-    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    const all = await todosCollection.find({ userId }).sort({ id: 1 }).toArray()
     response.json(all)
   } catch (error) {
     console.error(error)
@@ -91,11 +117,11 @@ async function handleCreateTodo(request, response) {
   }
 }
 
-app.post("/todos", handleCreateTodo)
-app.post("/submit", handleCreateTodo)
+app.post("/todos", requiresAuth(), handleCreateTodo)
+app.post("/submit", requiresAuth(), handleCreateTodo)
 
 // Route to delete a todo
-app.delete("/todos", async (request, response) => {
+app.delete("/todos", requiresAuth(), async (request, response) => {
   const id = parseInt(request.query.id)
   
   if (!id) {
@@ -104,12 +130,36 @@ app.delete("/todos", async (request, response) => {
   }
 
   try {
-    await todosCollection.deleteOne({ id })
-    const all = await todosCollection.find({}).sort({ id: 1 }).toArray()
+    const userId = request.oidc?.user?.sub
+    await todosCollection.deleteOne({ id, userId })
+    const all = await todosCollection.find({ userId }).sort({ id: 1 }).toArray()
     response.json(all)
   } catch (error) {
     console.error(error)
     response.status(500).send("Failed to delete todo")
+  }
+})
+
+// Update a todo by id
+app.put("/todos/:id", requiresAuth(), async (request, response) => {
+  const id = parseInt(request.params.id)
+  const { task, priority, creation_date } = request.body || {}
+  if (!id || !task || !priority || !creation_date) {
+    response.status(400).send("Missing required fields: id, task, priority, creation_date")
+    return
+  }
+  try {
+    const userId = request.oidc?.user?.sub
+    const deadline = calculateDeadline(creation_date, priority)
+    await todosCollection.updateOne(
+      { id, userId },
+      { $set: { task, priority, creation_date, deadline } }
+    )
+    const all = await todosCollection.find({ userId }).sort({ id: 1 }).toArray()
+    response.json(all)
+  } catch (error) {
+    console.error(error)
+    response.status(500).send("Failed to update todo")
   }
 })
 
