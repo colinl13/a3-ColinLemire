@@ -63,6 +63,7 @@ app.get("/", (request, response) => {
 
 // Lightweight auth status endpoint for client-side UI toggling
 app.get("/api/auth-status", (request, response) => {
+  // Learned to use !! because JS will return null values as true
   const isAuthenticated = !!(request.oidc && request.oidc.isAuthenticated())
   if (!isAuthenticated) {
     return response.json({ authenticated: false })
